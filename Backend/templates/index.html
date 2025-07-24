@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.0/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+            color: #1f2937; /* Tailwind gray-900 */
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6; /* Tailwind blue-500 */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Basic Markdown styling within prose class */
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        .prose h1 { font-size: 2.25em; }
+        .prose h2 { font-size: 1.875em; }
+        .prose h3 { font-size: 1.5em; }
+        .prose ul {
+            list-style-type: disc;
+            padding-left: 1.5em;
+        }
+        .prose ol {
+            list-style-type: decimal;
+            padding-left: 1.5em;
+        }
+        .prose li {
+            margin-bottom: 0.5em;
+        }
+        .prose strong {
+            font-weight: 700;
+        }
+        .prose p {
+            margin-bottom: 1em;
+        }
+        /* Fallback/Explicit styles for buttons */
+        button {
+            cursor: pointer;
+            border: 1px solid transparent; /* Ensure a default border */
+            /* Add other default button styles if needed, but Tailwind should handle most */
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center p-4 sm:p-6 md:p-8">
+    <header class="w-full max-w-4xl bg-white p-6 rounded-lg shadow-lg mb-8 text-center">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-blue-700 mb-4">AI Resume Agent</h1>
+        <p class="text-gray-600 text-md sm:text-lg">
+            Enhance your job application with AI-powered resume analysis, Q&A, and generation.
+        </p>
+        <p class="text-sm text-red-600 mt-4 font-semibold">
+            IMPORTANT: Ensure the Python Flask backend is running on http://127.0.0.1:5000 before using this page.
+        </p>
+    </header>
+
+    <nav class="w-full max-w-4xl flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
+        <button id="btnAnalysis" class="px-4 py-2 rounded-md transition-colors duration-200 bg-blue-600 text-white shadow-md cursor-pointer">
+            Resume Analysis
+        </button>
+        <button id="btnChat" class="px-4 py-2 rounded-md transition-colors duration-200 bg-gray-200 text-gray-800 hover:bg-gray-300 cursor-pointer">
+            Chat with Resume
+        </button>
+        <button id="btnQA" class="px-4 py-2 rounded-md transition-colors duration-200 bg-gray-200 text-gray-800 hover:bg-gray-300 cursor-pointer">
+            Q&A Generation
+        </button>
+        <button id="btnImprovement" class="px-4 py-2 rounded-md transition-colors duration-200 bg-gray-200 text-gray-800 hover:bg-gray-300 cursor-pointer">
+            Resume Improvement
+        </button> 
+        <button id="btnTailored" class="px-4 py-2 rounded-md transition-colors duration-200 bg-gray-200 text-gray-800 hover:bg-gray-300 cursor-pointer">
+            Tailored Resume
+        </button>
+    </nav>
+
+    <main class="w-full max-w-4xl">
+        <div id="loadingMessage" class="hidden flex items-center justify-center p-4 mb-4 bg-blue-100 text-blue-700 rounded-md shadow-sm">
+            <div class="loading-spinner"></div>
+            Processing your request...
+        </div>
+        <div id="errorMessage" class="hidden p-4 mb-4 bg-red-100 text-red-700 rounded-md shadow-sm">
+            <p class="font-semibold">Error:</p>
+            <p id="errorText"></p>
+        </div>
+
+        <!-- Section 1: Resume Analysis -->
+        <div id="sectionAnalysis" class="bg-white p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-2xl font-semibold text-blue-700 mb-4">Section 1: Resume Analysis</h2>
+            <div class="mb-4">
+                <label for="resumeTextAnalysis" class="block text-gray-700 text-sm font-bold mb-2">
+                    Paste Your Resume Text:
+                </label>
+                <textarea id="resumeTextAnalysis" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-y min-h-[100px]" placeholder="Paste your resume content here..."></textarea>
+            </div>
+            <div class="mb-6">
+                <label for="jobDescriptionAnalysis" class="block text-gray-700 text-sm font-bold mb-2">
+                    Paste Job Description:
+                </label>
+                <textarea id="jobDescriptionAnalysis" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-y min-h-[100px]" placeholder="Paste the job description here..."></textarea>
+            </div>
+            <button id="analyzeResumeBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition-all duration-200 cursor-pointer">
+                Analyze Resume
+            </button>
+            <div id="analysisResult" class="mt-6 p-4 bg-gray-50 rounded-md border border-gray-200 hidden">
+                <h3 class="text-xl font-medium text-gray-800 mb-3">Analysis Result:</h3>
+                <div class="prose max-w-none" id="analysisResultContent"></div>
+            </div>
+        </div>
+
+        <!-- Section 2: Chat with Resume -->
+        <div id="sectionChat" class="bg-white p-6 rounded-lg shadow-lg mb-6 hidden">
+            <h2 class="text-2xl font-semibold text-blue-700 mb-4">Section 2: Chat with Your Resume</h2>
+            <div class="mb-4">
+                <label for="resumeTextChat" class="block text-gray-700 text-sm font-bold mb-2">
+                    Paste Your Resume Text:
+                </label>
+                <textarea id="resumeTextChat" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-y min-h-[100px]" placeholder="Paste your resume content here to chat with it..."></textarea>
+            </div>
+            <div class="flex flex-col h-[400px] border border-gray-300 rounded-md overflow-hidden bg-gray-50">
+                <div id="chatHistory" class="flex-grow p-4 overflow-y-auto space-y-4">
+                    <p class="text-center text-gray-500 mt-10">Ask me anything about your resume!</p>
+                </div>
+                <form id="chatForm" class="flex p-4 border-t border-gray-300">
+                    <input
+                        type="text"
+                        id="chatInput"
+                        class="flex-grow p-3 border border-gray-300 rounded-l-md focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Type your question..."
+                    />
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-r-md transition-all duration-200 cursor-pointer">
+                        Send
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Section 3: Q&A Interview Question Generation -->
+        <div id="sectionQA" class="bg-white p-6 rounded-lg shadow-lg mb-6 hidden">
+            <h2 class="text-2xl font-semibold text-blue-700 mb-4">Section 3: Interview Q&A Generation</h2>
+            <div class="mb-4">
+                <label for="resumeTextQA" class="block text-gray-700 text-sm font-bold mb-2">
+                    Paste Your Resume Text:
+                </label>
+                <textarea id="resumeTextQA" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-y min-h-[100px]" placeholder="Paste your resume content here..."></textarea>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="questionType" class="block text-gray-700 text-sm font-bold mb-2">
+                        Question Difficulty:
+                    </label>
+                    <select id="questionType" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 cursor-pointer">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="questionCategory" class="block text-gray-700 text-sm font-bold mb-2">
+                        Question Category:
+                    </label>
+                    <select id="questionCategory" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 cursor-pointer">
+                        <option value="technical">Technical</option>
+                        <option value="coding">Coding</option>
+                        <option value="scenario">Scenario</option>
+                        <option value="behavioral">Behavioral</option>
+                        <option value="project-based">Project-based</option>
+                    </select>
+                </div>
+            </div>
+            <button id="generateQuestionsBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition-all duration-200 cursor-pointer">
+                Generate Interview Questions
+            </button>
+            <div id="generatedQuestionsResult" class="mt-6 p-4 bg-gray-50 rounded-md border border-gray-200 hidden">
+                <h3 class="text-xl font-medium text-gray-800 mb-3">Generated Questions:</h3>
+                <ul class="list-disc pl-5 space-y-2" id="generatedQuestionsList"></ul>
+                <p class="mt-4 text-gray-600 italic">
+                    (You can imagine an AI-driven answer and feedback system here.)
+                </p>
+            </div>
+        </div>
+
+        <!-- Section 4: Resume Improvement -->
+        <div id="sectionImprovement" class="bg-white p-6 rounded-lg shadow-lg mb-6 hidden">
+            <h2 class="text-2xl font-semibold text-blue-700 mb-4">Section 4: Resume Improvement</h2>
+            <div class="mb-6">
+                <label for="resumeTextImprovement" class="block text-gray-700 text-sm font-bold mb-2">
+                    Paste Your Resume Text:
+                </label>
+                <textarea id="resumeTextImprovement" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-y min-h-[100px]" placeholder="Paste your resume content here for improvement suggestions..."></textarea>
+            </div>
+            <button id="improveResumeBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition-all duration-200 cursor-pointer">
+                Get Improvement Suggestions
+            </button>
+            <div id="improvementSuggestionsResult" class="mt-6 p-4 bg-gray-50 rounded-md border border-gray-200 hidden">
+                <h3 class="text-xl font-medium text-gray-800 mb-3">Improvement Suggestions:</h3>
+                <div class="prose max-w-none" id="improvementSuggestionsContent"></div>
+            </div>
+        </div>
+
+        <!-- Section 5: Improved Resume Generation -->
+        <div id="sectionTailored" class="bg-white p-6 rounded-lg shadow-lg mb-6 hidden">
+            <h2 class="text-2xl font-semibold text-blue-700 mb-4">Section 5: Tailored Resume Generation</h2>
+            <div class="mb-4">
+                <label for="resumeTextTailored" class="block text-gray-700 text-sm font-bold mb-2">
+                    Paste Your Original Resume Text:
+                </label>
+                <textarea id="resumeTextTailored" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-y min-h-[100px]" placeholder="Paste your original resume content here..."></textarea>
+            </div>
+            <div class="mb-6">
+                <label for="jobDescriptionTailored" class="block text-gray-700 text-sm font-bold mb-2">
+                    Paste Job Description:
+                </label>
+                <textarea id="jobDescriptionTailored" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-y min-h-[100px]" placeholder="Paste the job description here to tailor your resume..."></textarea>
+            </div>
+            <button id="generateTailoredResumeBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition-all duration-200 cursor-pointer">
+                Generate Tailored Resume
+            </button>
+            <div id="tailoredResumeResult" class="mt-6 p-4 bg-gray-50 rounded-md border border-gray-200 hidden">
+                <h3 class="text-xl font-medium text-gray-800 mb-3">Generated Tailored Resume:</h3>
+                <pre class="whitespace-pre-wrap font-mono text-sm text-gray-800 bg-white p-4 rounded-md border border-gray-300" id="tailoredResumeContent"></pre>
+            </div>
+        </div>
+    </main>
+
+    <footer class="w-full max-w-4xl text-center text-gray-500 text-sm mt-8 p-4">
+        &copy; 2025 AI Resume Agent. All rights reserved.
+    </footer>
+
+    <script>
+        const BACKEND_URL = 'http://127.0.0.1:5000'; // Flask default port
+
+        // UI Elements
+        const sections = {
+            analysis: document.getElementById('sectionAnalysis'),
+            chat: document.getElementById('sectionChat'),
+            qa: document.getElementById('sectionQA'),
+            improvement: document.getElementById('sectionImprovement'),
+            tailored: document.getElementById('sectionTailored'),
+        };
+        const navButtons = {
+            analysis: document.getElementById('btnAnalysis'),
+            chat: document.getElementById('btnChat'),
+            qa: document.getElementById('btnQA'),
+            improvement: document.getElementById('btnImprovement'),
+            tailored: document.getElementById('btnTailored'),
+        };
+        const loadingMessage = document.getElementById('loadingMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+
+        let activeSection = 'analysis'; // Default active section
+
+        // Helper to show/hide sections and update nav buttons
+        function showSection(sectionName) {
+            Object.values(sections).forEach(section => section.classList.add('hidden'));
+            sections[sectionName].classList.remove('hidden');
+
+            Object.keys(navButtons).forEach(btnName => {
+                if (btnName === sectionName) {
+                    navButtons[btnName].classList.replace('bg-gray-200', 'bg-blue-600');
+                    navButtons[btnName].classList.replace('text-gray-800', 'text-white');
+                    navButtons[btnName].classList.add('shadow-md');
+                } else {
+                    navButtons[btnName].classList.replace('bg-blue-600', 'bg-gray-200');
+                    navButtons[btnName].classList.replace('text-white', 'text-gray-800');
+                    navButtons[btnName].classList.remove('shadow-md');
+                }
+                navButtons[btnName].classList.remove('hover:bg-gray-300'); // Remove hover for active
+                if (btnName !== sectionName) {
+                    navButtons[btnName].classList.add('hover:bg-gray-300');
+                }
+            });
+            activeSection = sectionName;
+            hideMessage(errorMessage); // Clear error when switching sections
+        }
+
+        // Helper to show/hide loading/error messages
+        function showLoading() {
+            loadingMessage.classList.remove('hidden');
+            hideMessage(errorMessage);
+        }
+
+        function hideLoading() {
+            loadingMessage.classList.add('hidden');
+        }
+
+        function showMessage(element, message) {
+            element.classList.remove('hidden');
+            element.querySelector('p:last-child').innerText = message;
+        }
+
+        function hideMessage(element) {
+            element.classList.add('hidden');
+            element.querySelector('p:last-child').innerText = '';
+        }
+
+        // --- API Call Helper ---
+async function callBackendApi(endpoint, data) {
+    showLoading();
+    try {
+        const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (err) {
+        console.error("Backend API call failed:", err);
+        showMessage(
+            errorMessage,
+            `Failed to get response from backend: ${err.message}. Please ensure the Python server is running.`
+        );
+        return null;
+    } finally {
+        hideLoading();
+    }
+}
+
+        // --- Section 1: Resume Analysis ---
+        document.getElementById('analyzeResumeBtn').addEventListener('click', async () => {
+            const resumeText = document.getElementById('resumeTextAnalysis').value;
+            const jobDescription = document.getElementById('jobDescriptionAnalysis').value;
+
+            if (!resumeText || !jobDescription) {
+                showMessage(errorMessage, "Please provide both resume text and job description for analysis.");
+                return;
+            }
+
+            const response = await callBackendApi('/analyze_resume', { resumeText, jobDescription });
+            if (response && response.result) {
+                document.getElementById('analysisResultContent').innerHTML = marked.parse(response.result);
+                document.getElementById('analysisResult').classList.remove('hidden');
+            } else {
+                document.getElementById('analysisResult').classList.add('hidden');
+            }
+        });
+
+        // --- Section 2: Chat with Resume ---
+        document.getElementById('chatForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resumeText = document.getElementById('resumeTextChat').value;
+            const chatInput = document.getElementById('chatInput');
+            const question = chatInput.value.trim();
+
+            if (!resumeText || !question) {
+                showMessage(errorMessage, "Please provide resume text and type a question to chat.");
+                return;
+            }
+
+            const chatHistoryDiv = document.getElementById('chatHistory');
+            // Add user message to chat history
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'flex justify-end';
+           userMsgDiv.innerHTML = `<div class="max-w-[70%] p-3 rounded-lg shadow-sm bg-blue-500 text-white">${question}</div>`;
+            chatHistoryDiv.appendChild(userMsgDiv);
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight; // Scroll to bottom
+
+            chatInput.value = ''; // Clear input
+
+            // Add thinking message
+            const thinkingMsgDiv = document.createElement('div');
+            thinkingMsgDiv.className = 'flex justify-start';
+            thinkingMsgDiv.innerHTML = `<div class="bg-gray-200 text-gray-800 max-w-[70%] p-3 rounded-lg shadow-sm flex items-center"><div class="loading-spinner"></div> Thinking...</div>`;
+            chatHistoryDiv.appendChild(thinkingMsgDiv);
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+
+            const response = await callBackendApi('/chat_with_resume', { resumeText, question });
+
+            // Remove thinking message
+            chatHistoryDiv.removeChild(thinkingMsgDiv);
+
+           if (response && response.response) {
+    let aiText = response.response;
+    if (Array.isArray(aiText)) {
+        aiText = aiText.join('\n');
+    }
+    const aiMsgDiv = document.createElement('div');
+    aiMsgDiv.className = 'flex justify-start';
+    aiMsgDiv.innerHTML = `<div class="max-w-[70%] p-3 rounded-lg shadow-sm bg-gray-200 text-gray-800">${aiText}</div>`;
+    chatHistoryDiv.appendChild(aiMsgDiv);
+} else {
+                const errorMsgDiv = document.createElement('div');
+                errorMsgDiv.className = 'flex justify-start';
+                errorMsgDiv.innerHTML = `<div class="max-w-[70%] p-3 rounded-lg shadow-sm bg-red-200 text-red-800">Sorry, I couldn't process that request right now.</div>`;
+                chatHistoryDiv.appendChild(errorMsgDiv);
+            }
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight; // Scroll to bottom
+        });
+
+        // --- Section 3: Q&A Interview Question Generation ---
+        document.getElementById('generateQuestionsBtn').addEventListener('click', async () => {
+            const resumeText = document.getElementById('resumeTextQA').value;
+            const questionType = document.getElementById('questionType').value;
+            const questionCategory = document.getElementById('questionCategory').value;
+
+            if (!resumeText) {
+                showMessage(errorMessage, "Please provide resume text to generate questions.");
+                return;
+            }
+
+            const response = await callBackendApi('/generate_interview_questions', {
+                resumeText,
+                questionType,
+                questionCategory
+            });
+
+            const questionsList = document.getElementById('generatedQuestionsList');
+            questionsList.innerHTML = ''; // Clear previous questions
+
+            if (response && response.questions && response.questions.length > 0) {
+                response.questions.forEach(q => {
+                    const li = document.createElement('li');
+                    li.className = 'text-gray-700';
+                    li.innerText = q;
+                    questionsList.appendChild(li);
+                });
+                document.getElementById('generatedQuestionsResult').classList.remove('hidden');
+            } else {
+                document.getElementById('generatedQuestionsResult').classList.add('hidden');
+                showMessage(errorMessage, "No questions generated. Please try again.");
+            }
+        });
+
+        // --- Section 4: Resume Improvement ---
+        document.getElementById('improveResumeBtn').addEventListener('click', async () => {
+            const resumeText = document.getElementById('resumeTextImprovement').value;
+
+            if (!resumeText) {
+                showMessage(errorMessage, "Please provide resume text for improvement suggestions.");
+                return;
+            }
+
+            const response = await callBackendApi('/improve_resume', { resumeText });
+            if (response && response.suggestions) {
+    let suggestionsText = response.suggestions;
+    if (Array.isArray(suggestionsText)) {
+        suggestionsText = suggestionsText.join('\n');
+    }
+    document.getElementById('improvementSuggestionsContent').innerHTML = marked.parse(suggestionsText);
+    document.getElementById('improvementSuggestionsResult').classList.remove('hidden');
+} else {
+    document.getElementById('improvementSuggestionsResult').classList.add('hidden');
+}
+        });
+
+        // --- Section 5: Improved Resume Generation ---
+        document.getElementById('generateTailoredResumeBtn').addEventListener('click', async () => {
+            const originalResume = document.getElementById('resumeTextTailored').value;
+            const jobDescription = document.getElementById('jobDescriptionTailored').value;
+
+            if (!originalResume || !jobDescription) {
+                showMessage(errorMessage, "Please provide both original resume text and job description to generate a tailored resume.");
+                return;
+            }
+
+         const response = await callBackendApi('/generate_tailored_resume', { originalResume, jobDescription });
+if (response && response.tailoredResume) {
+    document.getElementById('tailoredResumeContent').innerText = response.tailoredResume;
+    document.getElementById('tailoredResumeResult').classList.remove('hidden');
+} else {
+    document.getElementById('tailoredResumeResult').classList.add('hidden');
+    showMessage(errorMessage, "Failed to generate tailored resume. Please try again.");
+}
+        }); 
+
+        // --- Navigation Event Listeners ---
+        navButtons.analysis.addEventListener('click', () => showSection('analysis'));
+        navButtons.chat.addEventListener('click', () => showSection('chat'));
+        navButtons.qa.addEventListener('click', () => showSection('qa'));
+        navButtons.improvement.addEventListener('click', () => showSection('improvement'));
+        navButtons.tailored.addEventListener('click', () => showSection('tailored'));
+
+        // Initialize with the first section shown
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('analysis');
+        });
+    </script>
+</body>
+</html>
