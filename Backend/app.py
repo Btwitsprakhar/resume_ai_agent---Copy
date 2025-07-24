@@ -1,11 +1,11 @@
 import spacy
 from spacy.cli import download
 
+# Try to load spaCy model, or download to user directory if not found
 try:
-    # Try to load the model
     nlp = spacy.load("en_core_web_sm")
 except OSError:
-    # If not found, download to the user directory (avoids permission errors)
+    # Download to user directory to avoid permission errors on cloud platforms
     download("en_core_web_sm", "--user")
     nlp = spacy.load("en_core_web_sm")
 
@@ -15,36 +15,22 @@ import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-# For actual PDF/DOCX parsing, you'd need libraries like PyPDF2, python-docx, or Tesseract for OCR.
-# These are not included here as they require installation and specific file handling.
-# For demonstration, we'll assume text is already extracted and sent from frontend.
-
-# Example of installing libraries if running locally:
-# pip install Flask Flask-Cors requests spacy chromadb
-# python -m spacy download en_core_web_sm
-# pip install sentence-transformers # For real embeddings
-
 # --- Configuration ---
-# IMPORTANT: Replace with your actual Gemini API key if running outside the Canvas environment
-# In a production environment, use environment variables for keys: os.getenv("GEMINI_API_KEY")
 GEMINI_API_KEY = "AIzaSyBSGPyE2ddGGVVkylH_dIItzloP-H9ydA8" 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 app = Flask(__name__)
-CORS(app) # Enable CORS for all routes, allowing frontend to access
+CORS(app) # Enable CORS for all routes
 
 # --- 1. Text Extraction (Conceptual/Placeholder) ---
-# In a real backend, you'd integrate libraries here to process uploaded files.
-# For this Flask app, we expect the frontend to send the extracted text directly.
 def extract_text_from_file_conceptual(file_content_bytes: bytes) -> str:
     """
     Conceptual function to extract text from file content.
     In a real application, this would parse PDF/DOCX bytes.
     For this demo, we'll just return a placeholder or process simple text.
     """
-    # This function would be more complex to handle actual file types.
-    # For now, we assume the frontend sends the plain text.
     return file_content_bytes.decode('utf-8') # Simple decode if sending text as bytes
+
 
 # --- 2. Preprocessing and Embedding ---
 try:
