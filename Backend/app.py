@@ -1,3 +1,14 @@
+import spacy
+from spacy.cli import download
+
+try:
+    # Try to load the model
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    # If not found, download to the user directory (avoids permission errors)
+    download("en_core_web_sm", "--user")
+    nlp = spacy.load("en_core_web_sm")
+
 import os
 import json
 import requests
